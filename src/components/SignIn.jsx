@@ -6,18 +6,29 @@ import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
-import { Link } from 'react-router-dom';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
+import Dialog from '@mui/material/Dialog';
+import SignUp from './SignUp';
 import { createTheme, ThemeProvider } from '@mui/material/styles';;
 
 const defaultTheme = createTheme();
 
 export default function SignIn({ onLoginSuccess }) {
     const [errorMessage, setErrorMessage] = useState("");
+    const [openSignUp, setOpenSignUp] = useState(false);
+
+    const handleClickOpenSignUp = () => {
+        setOpenSignUp(true);
+    };
+
+    const handleCloseSignUp = () => {
+        setOpenSignUp(false);
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -61,7 +72,6 @@ export default function SignIn({ onLoginSuccess }) {
             console.error('로그인 요청 중 에러 발생:', error);
         }
     };
-
 
     return (
         <ThemeProvider theme={defaultTheme}>
@@ -124,11 +134,23 @@ export default function SignIn({ onLoginSuccess }) {
                         </Button>
                         <Grid container>
                             <Grid item>
-                                <Link to="/signup" variant="body2">
-                                    {"Don't have an account? Sign Up"}
-                                </Link>
+                                Don't have an account?
+                                <Button
+                                    onClick={handleClickOpenSignUp}
+                                    sx={{
+                                        fontWeight: 'bold',
+                                        color: 'black',
+                                        textDecoration: 'underline'
+                                    }}
+                                >
+                                    {"SignUp"}
+                                </Button>
+
                             </Grid>
                         </Grid>
+                        <Dialog open={openSignUp} onClose={handleCloseSignUp}>
+                            <SignUp onClose={handleCloseSignUp} />
+                        </Dialog>
                     </Box>
                 </Box>
             </Container>
