@@ -1,4 +1,3 @@
-// SignIn.jsx
 import React, {useState} from 'react';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
@@ -13,22 +12,28 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import Dialog from '@mui/material/Dialog';
 import SignUp from './SignUp';
-import { createTheme, ThemeProvider } from '@mui/material/styles';;
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '../actions/userActions';
 
 const defaultTheme = createTheme();
 
 export default function SignIn({ onLoginSuccess }) {
+    const dispatch = useDispatch();
     const [errorMessage, setErrorMessage] = useState("");
     const [openSignUp, setOpenSignUp] = useState(false);
 
+    //회원가입 창 열기
     const handleClickOpenSignUp = () => {
         setOpenSignUp(true);
     };
 
+    //회원가입 창 닫기
     const handleCloseSignUp = () => {
         setOpenSignUp(false);
     };
 
+    //로그인 폼 제출
     const handleSubmit = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -37,7 +42,6 @@ export default function SignIn({ onLoginSuccess }) {
             email: data.get('email'),
             password: data.get('password'),
         };
-
         try {
             const response = await fetch( process.env.REACT_APP_SERVER_URL + '/login', {
                 method: 'POST',
@@ -46,14 +50,17 @@ export default function SignIn({ onLoginSuccess }) {
                 },
                 body: JSON.stringify(loginDetails),
             });
-
+            //각 응답 상태마다 처리
+            //400,401,403 -> 예외처리
             if (response.ok) {
-                await response.json();
+                const jsonResponse = await response.json();
                 // 서버 응답 처리, 토큰 저장
-                localStorage.setItem('token', response.token);
+                window.localStorage.setItem('token', jsonResponse.token);
                 // 로그인 성공 처리
                 console.log("로그인 성공");
-                onLoginSuccess();
+                const userInfo = await fetchUserInfo(jsonResponse.token, loginDetails.email);
+
+                dispatch(loginSuccess(userInfo));
             } else if (response.status===400) {
                 const errorData = await response.json(); // 서버로부터 에러 메시지 받기
                 setErrorMessage(errorData.message);
@@ -72,6 +79,19 @@ export default function SignIn({ onLoginSuccess }) {
             console.error('로그인 요청 중 에러 발생:', error);
         }
     };
+
+    async function fetchUserInfo(token, email) {
+        const response = await fetch(process.env.REACT_APP_SERVER_URL + `/main/${email}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        if (response.ok) {
+            return await response.json();
+        } else {
+            throw new Error('Main request failed: ' + response.statusText);
+        }
+    }
 
     return (
         <ThemeProvider theme={defaultTheme}>
@@ -124,9 +144,9 @@ export default function SignIn({ onLoginSuccess }) {
                             sx={{
                                 mt: 3,
                                 mb: 2,
-                                backgroundColor: 'black', // 여기서 'blue'는 원하는 색상으로 변경하세요.
+                                backgroundColor: 'black',
                                 '&:hover': {
-                                    backgroundColor: 'darkgray', // 마우스 오버 시 색상, 원하는 색상으로 변경하세요.
+                                    backgroundColor: 'darkgray',
                                 },
                             }}
                         >

@@ -53,25 +53,19 @@ export default function SignUp({ onClose }) {
         username: null,
     });
 
-    // 각 Select 컴포넌트의 handleChange 함수 정의
-    const handleYearChange = (event) => {
-        setYear(event.target.value);
-    };
+    // 각 Select 컴포넌트의 handleChange 함수 정의 -> birth select 박스 year, month, day
+    const handleYearChange = (event) => {setYear(event.target.value);};
+    const handleMonthChange = (event) => {setMonth(event.target.value);};
+    const handleDayChange = (event) => {setDay(event.target.value);};
 
-    const handleMonthChange = (event) => {
-        setMonth(event.target.value);
-    };
-
-    const handleDayChange = (event) => {
-        setDay(event.target.value);
-    };
-
+    //회원가입 성공 다이얼로그 닫기
     const handleSuccessDialogClose = (event) => {
         event.preventDefault();
         setOpenSuccessDialog(false);
         onClose();
     };
 
+    //이메일, 사용자명 중복되는 값이 db에 있는지 확인
     const checkFieldAvailability = async (field, value) => {
         if (value.length > 0) {
             try {
@@ -92,13 +86,14 @@ export default function SignUp({ onClose }) {
         }
     };
 
+    //이메일, 사용자명 필드가 바뀔때마다 checkFieldAvailability 메소드 호출하여 중복 검사
     const handleInputChange = (event) => {
         const { name, value } = event.target;
         setFormFields(prevFields => ({ ...prevFields, [name]: value }));
         checkFieldAvailability(name, value);
     };
 
-
+    //회원가입 폼 제출
     const handleSubmit = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -119,7 +114,8 @@ export default function SignUp({ onClose }) {
                 },
                 body: JSON.stringify(signUpDetails),
             });
-
+            //각 상태별 처리
+            //400 예외처리
             if(response.ok){
                 setOpenSuccessDialog(true);
             }
