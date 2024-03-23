@@ -2,50 +2,52 @@ import React from 'react';
 import { BsPlus, BsFillLightningFill } from 'react-icons/bs';
 import { FaDiscord, FaFire, FaPoo } from 'react-icons/fa';
 import { IoMdCompass } from 'react-icons/io';
+import LogoutButton from "./LogoutButton";
 
 const SideBar = () => {
+
   return (
-    <div
-      className='relative top-0 left-0 m-0 flex h-screen min-w-min
+      <div
+          className='relative top-0 left-0 m-0 flex h-screen min-w-min
                   flex-col items-center bg-gray-300
                   pt-3 text-gray-900
                   shadow dark:bg-gray-900 dark:text-white'
-    >
-      <SideBarIcon
-        icon={<FaDiscord size={28} />}
-        isServerIcon={true}
-        text={'Direct Messages'}
-      />
-      <Divider />
-      <SideBarIcon
-        icon={<FaFire size={28} />}
-        isActive={true}
-        isServerIcon={true}
-      />
-      <SideBarIcon
-        icon={<BsFillLightningFill size={20} />}
-        isServerIcon={true}
-      />
-      <SideBarIcon icon={<FaPoo size={20} />} isServerIcon={true} />
-      <SideBarIcon
-        icon={<BsPlus size={32} />}
-        text={'Add a Server'}
-        isServerIcon={false}
-      />
-      <SideBarIcon
-        icon={<IoMdCompass size={22} />}
-        text={'Explore Public Servers'}
-        isServerIcon={false}
-      />
-    </div>
+      >
+          <SideBarIcon
+              icon={<FaDiscord size={28}/>}
+              isServerIcon={true}
+          />
+          <Divider/>
+          <SideBarIcon
+              icon={<FaFire size={28}/>}
+              isActive={true}
+              isServerIcon={true}
+          />
+          <SideBarIcon
+              icon={<BsFillLightningFill size={20}/>}
+              isServerIcon={true}
+          />
+          <SideBarIcon icon={<FaPoo size={20}/>} isServerIcon={true}/>
+          <SideBarIcon
+              icon={<BsPlus size={32}/>}
+              isServerIcon={false}
+          />
+          <SideBarIcon
+              icon={<IoMdCompass size={22}/>}
+              isServerIcon={false}
+          />
+          <div className='flex-grow'></div>
+          <SideBarIcon
+                icon={<LogoutButton size={28}/>}
+                isServerIcon={true}
+          />
+      </div>
   );
 };
 
-const SideBarIcon = ({
-  icon,
+const SideBarIcon = ({icon,
   isActive = false,
   isServerIcon = false,
-  text = 'tooltip',
 }) => (
   <div className='group relative mb-2 min-w-min px-3'>
     <Pip isActive={isActive} />
@@ -57,7 +59,6 @@ const SideBarIcon = ({
       }`}
     >
       {icon}{' '}
-      <span className='sidebar-tooltip group-hover:scale-100'>{text}</span>
     </div>
   </div>
 );
