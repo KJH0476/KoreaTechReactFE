@@ -14,7 +14,9 @@ import Dialog from '@mui/material/Dialog';
 import SignUp from './SignUp';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useDispatch } from 'react-redux';
-import { loginSuccess } from '../actions/userActions';
+import {actions as userActions} from "../reducers/reducer/userSlice";
+import {actions as friendActions} from "../reducers/reducer/friendSlice";
+import {sendRequestWithToken} from "../common/requestWithToken";
 
 const defaultTheme = createTheme();
 
@@ -60,7 +62,9 @@ export default function SignIn({ onLoginSuccess }) {
                 console.log("로그인 성공");
                 const userInfo = await fetchUserInfo(jsonResponse.token, loginDetails.email);
 
-                dispatch(loginSuccess(userInfo));
+                dispatch(userActions.loginSuccess(userInfo));
+
+                loadFriendsData(userInfo.id);
             } else if (response.status===400) {
                 const errorData = await response.json(); // 서버로부터 에러 메시지 받기
                 setErrorMessage(errorData.message);
@@ -92,6 +96,27 @@ export default function SignIn({ onLoginSuccess }) {
             throw new Error('Main request failed: ' + response.statusText);
         }
     }
+
+    const loadFriendsData = async (memberId) => {
+        try {
+            const [friendsResponse, friendsReceiveResponse] = await Promise.all([
+                sendRequestWithToken(`/find-all-friend/${memberId}/FRIENDS`, null, 'GET', dispatch),
+                sendRequestWithToken(`/find-all-friend/${memberId}/RECEIVED`, null, 'GET', dispatch)
+            ]);
+
+            if (friendsResponse.status === 200 && friendsResponse.data) {
+                dispatch(friendActions.addFriends(friendsResponse.data));
+            }
+
+            if (friendsReceiveResponse.status === 200 && friendsReceiveResponse.data) {
+                dispatch(friendActions.addFriends(friendsReceiveResponse.data));
+            }
+            console.log("친구 정보 로드 완료");
+        }
+        catch (error) {
+            console.error(error);
+        }
+    };
 
     return (
         <ThemeProvider theme={defaultTheme}>
