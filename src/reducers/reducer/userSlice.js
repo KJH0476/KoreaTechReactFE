@@ -24,9 +24,14 @@ const userSlice = createSlice({
         setLoading: (state, action) => {
             state.loading = action.payload;
         },
+        updateUserStatus(state, action) {
+            if (state.userInfo) {
+                state.userInfo.status = action.payload;
+            }
+        },
     },
 });
 
-export const { loginSuccess, logout, setLoading } = userSlice.actions;
+export const { loginSuccess, logout, setLoading, updateUserStatus } = userSlice.actions;
 export default userSlice.reducer;
 
