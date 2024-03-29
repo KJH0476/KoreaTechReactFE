@@ -1,5 +1,4 @@
 import {
-  Bell,
   Chats,
   Hash,
   MagnifyingGlass,
@@ -9,30 +8,114 @@ import {
   Users,
   Sun,
   Moon,
+  PhoneCall,
+  VideoCamera,
+  UserPlus,
 } from "@phosphor-icons/react";
 import useDarkMode from "../hooks/useDarkMode";
+import React, {useEffect, useState} from 'react';
+import Modal from 'react-modal';
+import NotificationList from './NotificationList';
+import '../index.css';
+import ChannelChat from "./ChannelChat";
+import {useParams} from "react-router-dom";
+import VoiceCall from "./VoiceCall";
+import VideoCall from "./VideoCall";
 
-const ChannelBar = ({ channelName }) => {
+const customStyles = {
+  content: {
+    position: 'absolute', // 모달을 절대적 위치로 설정
+    top: '53px', // 모달 트리거 요소 아래에 위치
+    left: '87%', // 화면의 가운데로부터 왼쪽으로 어느 정도 떨어진 위치에 모달이 나타나도록 조정
+    right: 'auto',
+    bottom: 'auto',
+    transform: 'translate(-50%, 0)', // X축으로만 이동
+    width: '20rem', // 모달의 너비
+    zIndex: 1000, // 모달의 z-index를 충분히 높게 설정
+  },
+  overlay: {
+    position: 'fixed', // 오버레이를 화면에 고정
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent' // 배경색 투명으로 설정
+  },
+};
+
+Modal.setAppElement('#root');
+
+const ChannelBar = () => {
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [activeComponent, setActiveComponent] = useState("channelChat");
+  const { roomId, channelName } = useParams();
+
+  function openModal() {
+    setModalIsOpen(true);
+  }
+
+  function closeModal() {
+    setModalIsOpen(false);
+  }
+
+  useEffect(() => {
+    setActiveComponent("channelChat");
+  }, [channelName]);
+
+  //음성통화
+  const handleVoiceCallClick = () => {
+    setActiveComponent("voiceCall");
+    console.log("Active component set to voiceCall");
+  };
+
+  //영상통화
+  const handleVideoCallClick = () => {
+    setActiveComponent("videoCall");
+  };
+
+  //현재 활성화된 컴포넌트를 렌더링하는 로직
+  const renderActiveComponent = () => {
+    switch (activeComponent) {
+      case "voiceCall":
+        return <VoiceCall />;
+      case "videoCall":
+        return <VideoCall roomId={roomId}/>;
+      case "channelChat":
+      default:
+        return <ChannelChat />;
+    }
+  };
+
   return (
-    <div className="relative flex h-12 w-full items-center justify-between py-3 px-4">
-      <div className="relative flex min-w-0 flex-auto items-center overflow-hidden">
-        <Hash className="mr-2 overflow-hidden text-gray-500" size={24} />
-        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-          {channelName}
-        </h1>
-      </div>
+      <>
+        <div className="relative flex h-12 w-full items-center justify-between py-3 px-4">
+          <div className="relative flex min-w-0 flex-auto items-center overflow-hidden">
+            <Hash className="mr-2 overflow-hidden text-gray-500" size={24}/>
+            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              {channelName}
+            </h1>
+          </div>
 
-      <div className="flex items-center gap-4">
-        <ThemeIcon />
-        <IconButton icon={"threads"} tooltipText={"Threads"} />
-        <IconButton icon={"bell"} tooltipText={"Notification Settings"} />
-        <IconButton icon={"pin"} tooltipText={"Pinned Messages"} />
-        <IconButton icon={"users"} tooltipText={"Show Member List"} />
-        <SearchBar />
-        <IconButton icon={"inbox"} tooltipText={"Inbox"} />
-        <IconButton icon={"question"} tooltipText={"Help"} />
-      </div>
-    </div>
+          <div className="flex items-center gap-4">
+            <ThemeIcon/>
+            <IconButton icon={"phoneCall"} tooltipText={"음성통화 하기"} onClick={handleVoiceCallClick}/>
+            <IconButton icon={"videoCamera"} tooltipText={"영상통화 하기"} onClick={handleVideoCallClick}/>
+            <IconButton icon={"userPlus"} tooltipText={"개인 메세지에 친구 추가하기"}/>
+            <SearchBar/>
+            <IconButton icon={"inbox"} tooltipText={"받은 알림함"} onClick={openModal}/>
+            <IconButton icon={"question"} tooltipText={"Help"}/>
+
+            <Modal
+                isOpen={modalIsOpen}
+                onRequestClose={closeModal}
+                style={customStyles}
+                contentLabel="Notification Modal"
+            >
+              <NotificationList/>
+            </Modal>
+          </div>
+        </div>
+        {renderActiveComponent()}</>
   );
 };
 
@@ -53,7 +136,7 @@ const SearchBar = () => {
   );
 };
 
-const IconButton = ({ icon, tooltipText }) => {
+const IconButton = ({ icon, tooltipText, onClick }) => {
   const iconProps = {
     className:
       "cursor-pointer dark:text-gray-400 dark:hover:text-gray-200 text-gray-600 hover:text-gray-800",
@@ -63,14 +146,14 @@ const IconButton = ({ icon, tooltipText }) => {
 
   let iconEl;
   switch (icon) {
-    case "bell":
-      iconEl = <Bell {...iconProps} />;
+    case "phoneCall":
+      iconEl = <PhoneCall {...iconProps} />;
       break;
-    case "threads":
-      iconEl = <Chats {...iconProps} />;
+    case "videoCamera":
+      iconEl = <VideoCamera {...iconProps} />;
       break;
-    case "hashtag":
-      iconEl = <Hash {...iconProps} />;
+    case "userPlus":
+      iconEl = <UserPlus {...iconProps} />;
       break;
     case "pin":
       iconEl = <PushPin {...iconProps} />;
@@ -79,7 +162,7 @@ const IconButton = ({ icon, tooltipText }) => {
       iconEl = <Question {...iconProps} />;
       break;
     case "inbox":
-      iconEl = <Tray {...iconProps} />;
+      iconEl = <Tray {...iconProps} onClick={onClick}/>;
       break;
     case "users":
       iconEl = <Users {...iconProps} />;
@@ -89,7 +172,7 @@ const IconButton = ({ icon, tooltipText }) => {
   }
 
   return (
-    <div className="group relative flex flex-col items-center">
+    <div className="group relative flex flex-col items-center" onClick={onClick}>
       {iconEl}
       <Tooltip text={tooltipText} />
     </div>

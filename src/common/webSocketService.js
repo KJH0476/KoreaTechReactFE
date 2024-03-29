@@ -7,7 +7,7 @@ import {addNotification} from "../reducers/reducer/notificationSlice";
 
 let sockjs = null;
 let memberId = null;
-let stompClient = null;
+export let stompClient = null;
 let userEmail = null;
 let shouldReconnect = true;
 

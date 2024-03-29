@@ -14,8 +14,8 @@ import Dialog from '@mui/material/Dialog';
 import SignUp from './SignUp';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useDispatch } from 'react-redux';
-import {actions as userActions} from "../reducers/reducer/userSlice";
-import {actions as friendActions} from "../reducers/reducer/friendSlice";
+import {loginSuccess} from "../reducers/reducer/userSlice";
+import {addFriends} from "../reducers/reducer/friendSlice";
 import {sendRequestWithToken} from "../common/requestWithToken";
 
 const defaultTheme = createTheme();
@@ -62,7 +62,7 @@ export default function SignIn({ onLoginSuccess }) {
                 console.log("로그인 성공");
                 const userInfo = await fetchUserInfo(jsonResponse.token, loginDetails.email);
 
-                dispatch(userActions.loginSuccess(userInfo));
+                dispatch(loginSuccess(userInfo));
 
                 loadFriendsData(userInfo.id);
             } else if (response.status===400) {
@@ -105,11 +105,11 @@ export default function SignIn({ onLoginSuccess }) {
             ]);
 
             if (friendsResponse.status === 200 && friendsResponse.data) {
-                dispatch(friendActions.addFriends(friendsResponse.data));
+                dispatch(addFriends(friendsResponse.data));
             }
 
             if (friendsReceiveResponse.status === 200 && friendsReceiveResponse.data) {
-                dispatch(friendActions.addFriends(friendsReceiveResponse.data));
+                dispatch(addFriends(friendsReceiveResponse.data));
             }
             console.log("친구 정보 로드 완료");
         }

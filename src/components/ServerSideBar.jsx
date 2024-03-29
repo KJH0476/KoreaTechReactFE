@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { Hash } from "@phosphor-icons/react";
-import { BsPlus } from "react-icons/bs";
 import { RxCaretDown, RxCaretRight } from "react-icons/rx";
-
-const textChannels = [
-  { id: 1, name: "general", active: true },
-  { id: 2, name: "memes", active: false },
-  { id: 3, name: "tech", active: false },
-  { id: 4, name: "food", active: false },
-];
-const voiceChannels = [
-  { id: 1, name: "Lounge", active: false },
-  { id: 2, name: "Games", active: false },
-];
+import {Users} from "@phosphor-icons/react";
+import {useNavigate, useLocation} from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const ServerSideBar = () => {
+    const location = useLocation();
+    const chatRooms = useSelector((state) => state.chatRoom.chatRoom);
   return (
     <div
       className="relative top-0 flex h-full
@@ -24,29 +17,33 @@ const ServerSideBar = () => {
     >
       <Header serverName={"ConcordiaGaming"} />
       <Divider />
-      <Section sectionName={"Text Channels"} channels={textChannels} />
-      <Section sectionName={"Voice Channels"} channels={voiceChannels} />
+        <FriendsSection active={location.pathname === "/"} />
+      <Section sectionName={"다이렉트 메세지"} channels={chatRooms} />
     </div>
   );
 };
 
-const Header = ({ serverName = "" }) => {
+const Header = () => {
+  const [serverName, setServerName] = useState(""); // 서버 이름 상태 관리
+
   return (
-    <div
-      className="w-full cursor-pointer py-3 px-4
+      <div
+          className="w-full cursor-pointer py-3 px-4
                   transition-colors duration-100
                   hover:bg-gray-300 dark:hover:bg-gray-700"
-    >
-      <div className="flex h-6 items-center">
-        <div
-          className="flex-1 overflow-hidden text-ellipsis
-                      whitespace-nowrap text-base font-semibold"
-        >
-          {serverName}
+      >
+        <div className="flex h-6 items-center">
+          <input
+              type="text"
+              value={serverName}
+              onChange={(e) => setServerName(e.target.value)} // 입력값 변경 처리
+              className="flex-1 bg-transparent border-none
+                     text-ellipsis whitespace-nowrap text-base font-semibold
+                     dark:text-gray-100"
+              placeholder="대화찾기 또는 시작하기"
+          />
         </div>
-        <RxCaretDown size={24} />
       </div>
-    </div>
   );
 };
 
@@ -58,12 +55,30 @@ const Divider = () => (
   />
 );
 
-const Section = ({ sectionName = "Text Channels", channels }) => {
-  const [expanded, setExpanded] = useState(true);
+const FriendsSection = ({active}) => {
+    let navigate = useNavigate();
+    return (
+        <div className="flex w-full flex-col">
+        <div
+            className={`mx-2 my-4 flex cursor-pointer items-center rounded px-2 
+            py-1 text-gray-500 hover:bg-gray-300 hover:text-gray-600 
+            dark:hover:bg-gray-700 dark:hover:text-gray-400 
+            ${active ? "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400" : ""}`}
+            onClick={() => navigate(`/`)}
+        >
+            <Users className="text-gray-500 mx-1" size={24} weight="fill" />
+            <p className="ml-1 overflow-hidden text-ellipsis whitespace-nowrap text-base font-bold">친구</p>
+        </div>
+        </div>
+    );
+};
 
-  return (
-    <div className="flex w-full flex-col">
-      <div
+const Section = ({sectionName = "Text Channels", channels}) => {
+    const [expanded, setExpanded] = useState(true);
+
+    return (
+        <div className="flex w-full flex-col">
+            <div
         className="mb-1 flex cursor-pointer items-center pt-4 
                     text-gray-500 hover:text-gray-700
                     dark:text-gray-400 dark:hover:text-gray-100"
@@ -77,32 +92,31 @@ const Section = ({ sectionName = "Text Channels", channels }) => {
           </div>
           <span className="text-xs font-bold uppercase">{sectionName}</span>
         </div>
-        <BsPlus className="mr-2 text-gray-900 dark:text-gray-400" size={24} />
       </div>
       {channels &&
         channels.map((channel) => (
-          <ChannelItem key={channel.id} channel={channel} isSectionExpanded={expanded} />
+          <ChannelItem key={channel.friendName} channel={channel} isSectionExpanded={expanded} />
         ))}
     </div>
   );
 };
 
 const ChannelItem = ({ channel, isSectionExpanded = true }) => {
+    let navigate = useNavigate();
+    const location = useLocation();
+    const isActive = location.pathname === `/channel/${channel.friendName}`;
   return (
     <div className={`${!isSectionExpanded && !channel.active ? "hidden" : ""}`}>
       <div
         className={`mx-2 my-0.5 flex cursor-pointer items-center rounded px-2 
                     py-1 text-gray-500 hover:bg-gray-300 hover:text-gray-600
                     dark:hover:bg-gray-700 dark:hover:text-gray-400
-                    ${
-                      channel.active
-                        ? "bg-gray-400 text-gray-900 dark:bg-gray-600 dark:text-gray-100"
-                        : ""
-                    }`}
+                    ${isActive ? "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400" : ""}`}
+        onClick={() => navigate(`/channel/${channel.roomId}/${channel.friendName}`)}
       >
         <Hash className="text-gray-500" size={24} />
         <p className="ml-1 overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium">
-          {channel.name}
+          {channel.friendName}
         </p>
       </div>
     </div>
