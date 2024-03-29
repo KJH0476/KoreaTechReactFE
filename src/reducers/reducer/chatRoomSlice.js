@@ -17,9 +17,12 @@ const chatRoomSlice = createSlice({
         removeChatRoom(state, action) {
             state.chatRoom = state.chatRoom.filter(chatRoom => chatRoom.id !== action.payload);
         },
+        clearChatRoom(state) {
+            state.chatRoom = [];
+        },
     },
 });
 
-export const { addChatRoom, removeChatRoom} = chatRoomSlice.actions;
+export const { addChatRoom, removeChatRoom, clearChatRoom} = chatRoomSlice.actions;
 
 export default chatRoomSlice.reducer;
