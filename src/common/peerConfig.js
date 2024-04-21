@@ -1,136 +1,155 @@
 import {stompClient} from "./webSocketService";
+import { otherKeyList } from "../components/VideoCall";
+import {createPeerConnection, sendOffer, sendAnswer, iceCandidatesQueue} from "../components/VideoCall";
+import {setVideo} from "../reducers/reducer/videoCallSlice";
 
-//WebRtc
-const myKey = Math.random().toString(36).substring(2, 11);
-let pcListMap = new Map();
-let roomId;
-let otherKeyList = [];
-let localStream = undefined;
+export const pcListMap = new Map();
 
-export const peerConfig = (roomId) => {
+export const peerConfig = async (id, email, dispatch) => {
     /**
      * WebRtc
      */
-    stompClient.subscribe(`/user/peer/iceCandidate/${roomId}`, candidate => {
-        const key = JSON.parse(candidate.body).key
-        const message = JSON.parse(candidate.body).body;
+    const roomId = id;
+    const myEmail = email;
 
-        // 해당 key에 해당되는 peer 에 받은 정보를 addIceCandidate 해준다.
-        pcListMap.get(key).addIceCandidate(new RTCIceCandidate({candidate:message.candidate,sdpMLineIndex:message.sdpMLineIndex,sdpMid:message.sdpMid}));
-
-    });
-
-    stompClient.subscribe(`/user/peer/offer/${roomId}`, offer => {
-        const key = JSON.parse(offer.body).key;
+    stompClient.subscribe(`/topic/videoCall/offer/${myEmail}/${roomId}`, async offer => {
+        const senderEmail = JSON.parse(offer.body).key;
         const message = JSON.parse(offer.body).body;
 
-        // 해당 key에 새로운 peerConnection 를 생성해준후 pcListMap 에 저장해준다.
-        pcListMap.set(key,createPeerConnection(key));
-        // 생성한 peer 에 offer정보를 setRemoteDescription 해준다.
-        pcListMap.get(key).setRemoteDescription(new RTCSessionDescription({type:message.type,sdp:message.sdp}));
-        //sendAnswer 함수를 호출해준다.
-        sendAnswer(pcListMap.get(key), key);
+        console.log('[offer] senderEmail: ', senderEmail);
+        console.log('Received offer:', message, roomId);
 
+        //해당 key에 새로운 peerConnection 를 생성해준후 pcListMap 에 저장해준다.
+        const pc = await createPeerConnection(roomId, myEmail, senderEmail);
+        pcListMap.set(senderEmail, pc);
+        console.log('pcListMap:', pcListMap);
+        try {
+            //생성한 peer 에 offer정보를 setRemoteDescription 해준다.
+            //await pcListMap.get(senderEmail).setRemoteDescription(new RTCSessionDescription({type:message.type,sdp:message.sdp}));
+            await pc.setRemoteDescription(new RTCSessionDescription({
+                type: message.type,
+                sdp: message.sdp
+            }));
+            console.log('Set remote description success.');
+            console.log('senderEmail:', senderEmail);
+
+            //sendAnswer 함수를 호출
+            await sendAnswer(pcListMap.get(senderEmail), roomId, myEmail, senderEmail);
+
+            const pcKey = `${senderEmail}-${roomId}`;
+            if (iceCandidatesQueue.has(pcKey)) {
+                const candidates = iceCandidatesQueue.get(pcKey);
+                candidates.forEach(candidate => {
+                    console.log('Adding ICE candidate from queue.');
+                    pcListMap.get(senderEmail).addIceCandidate(new RTCIceCandidate(candidate));
+                });
+                iceCandidatesQueue.delete(pcKey); // 처리된 후보는 큐에서 제거
+            }
+        } catch (error) {
+            console.error("Failed to set remote description:", error);
+        }
     });
-    stompClient.subscribe(`/user/peer/answer/${roomId}`, answer =>{
-        const key = JSON.parse(answer.body).key;
+
+    stompClient.subscribe(`/topic/videoCall/answer/${myEmail}/${roomId}`, async (answer) => {
+        const senderEmail = JSON.parse(answer.body).key;
         const message = JSON.parse(answer.body).body;
 
-        // 해당 key에 해당되는 Peer 에 받은 정보를 setRemoteDescription 해준다.
-        pcListMap.get(key).setRemoteDescription(new RTCSessionDescription(message));
+        console.log('[answer] senderEmail: ', senderEmail);
+        console.log('Received answer: ', message);
 
+        const pc = pcListMap.get(senderEmail);
+        if (!pc) {
+            console.error(`PeerConnection not found for sender: ${senderEmail}`);
+            return;
+        }
+
+        try {
+            //setRemoteDescription 생성
+            await pc.setRemoteDescription(new RTCSessionDescription({
+                type: message.type,
+                sdp: message.sdp
+            }));
+            console.log('Set remote description success for answer.');
+
+            // setRemoteDescription 성공 후, 큐에 저장된 ICE 후보를 처리
+            const pcKey = `${senderEmail}-${roomId}`;
+            if (iceCandidatesQueue.has(pcKey)) {
+                const candidates = iceCandidatesQueue.get(pcKey);
+                for (const candidate of candidates) {
+                    console.log('Adding ICE candidate from queue for answer.');
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+                iceCandidatesQueue.delete(pcKey); // 처리된 후보는 큐에서 제거
+            }
+        } catch (error) {
+            console.error("Failed to process answer or add ICE candidate:", error);
+        }
     });
 
-    //key를 보내라는 신호를 받은 subscribe
-    stompClient.subscribe(`/user/call/key`, message =>{
-        //자신의 key를 보내는 send
-        stompClient.send(`/app/send/key`, {}, JSON.stringify(myKey));
 
+    stompClient.subscribe(`/topic/videoCall/iceCandidate/${myEmail}/${roomId}`, async (candidate) => {
+        const senderEmail = JSON.parse(candidate.body).key;
+        const message = JSON.parse(candidate.body).body;
+        console.log('Received ICE candidate:', senderEmail, message, roomId);
+
+        const pcKey = `${senderEmail}-${roomId}`;
+        const pc = pcListMap.get(senderEmail);
+
+        await addQueueIceCandidate(pc, pcKey, message);
+    });
+
+
+    //key를 보내라는 신호를 받은 subscribe
+    stompClient.subscribe(`/topic/requestCall/${myEmail}`, message =>{
+        const messageBody = JSON.parse(message.body);
+
+        console.log('Received call key:', messageBody.email);
+        dispatch(setVideo({ videoCall: true, senderEmail: messageBody.email }));
     });
 
     //상대방의 key를 받는 subscribe
-    stompClient.subscribe(`/user/send/key`, message => {
-        const key = JSON.parse(message.body);
-
-        //만약 중복되는 키가 ohterKeyList에 있는지 확인하고 없다면 추가해준다.
-        if(myKey !== key && otherKeyList.find((mapKey) => mapKey === myKey) === undefined){
-            otherKeyList.push(key);
+    stompClient.subscribe(`/topic/receiveCall/${myEmail}`, async message => {
+        const messageBody = JSON.parse(message.body);
+        //messageBody.email 상대방 이메일
+        //만약 중복되는 키가 ohterKeyList에 있는지 확인하고 없다면 추가
+        if(email !== messageBody.email && otherKeyList.find((mapKey) => mapKey === messageBody.email) === undefined){
+            otherKeyList.push(messageBody.email);
+            console.log('otherKeyList:', otherKeyList);
+        }
+        if(messageBody.message === 'accept') {
+            if (!pcListMap.has(messageBody.email)) {
+                console.log('accept and Create PeerConnection:', messageBody.email);
+                const pc = await createPeerConnection(roomId, myEmail, messageBody.email);
+                pcListMap.set(messageBody.email, pc);
+                console.log('pcListMap:', pcListMap);
+                await sendOffer(pc, roomId, messageBody.email); // 이 함수는 비동기적으로 실행
+            }
         }
     });
 }
 
-//PeerConnection 생성 함수
-const createPeerConnection = (otherKey) =>{
-    const pc = new RTCPeerConnection();
-    try {
-        // peerConnection 에서 icecandidate 이벤트가 발생시 onIceCandidate 함수 실행
-        pc.addEventListener('icecandidate', (event) =>{
-            onIceCandidate(event, otherKey);
-        });
-        // peerConnection 에서 track 이벤트가 발생시 onTrack 함수를 실행
-        pc.addEventListener('track', (event) =>{
-            onTrack(event, otherKey);
-        });
+const addQueueIceCandidate = async (pc, pcKey, message) => {
 
-        // 만약 localStream 이 존재하면 peerConnection에 addTrack 으로 추가함
-        if(localStream !== undefined){
-            localStream.getTracks().forEach(track => {
-                pc.addTrack(track, localStream);
-            });
+    console.log('addQueueIceCandidate:', pc, pcKey, message);
+
+    if (pc && pc.remoteDescription) { //pc가 존재하고, 원격 설명이 이미 설정되어 있다면
+        console.log('PeerConnection 준비 O -> ICE candidate 바로 추가');
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate({
+                candidate: message.candidate,
+                sdpMLineIndex: message.sdpMLineIndex,
+                sdpMid: message.sdpMid
+            }));
+            iceCandidatesQueue.delete(pcKey); // 처리된 후보는 큐에서 제거
+        } catch (error) {
+            console.error("Error adding ICE candidate:", error);
         }
-        console.log('PeerConnection created');
-    } catch (error) {
-        console.error('PeerConnection failed: ', error);
+    } else {
+        //PeerConnection이 준비되지 않았거나 원격 설명이 설정되지 않았다면 iceCandidate를 임시 저장소에 저장
+        console.log('PeerConnection 준비 X -> ICE candidate 큐에 추가');
+        if (!iceCandidatesQueue.has(pcKey)) {
+            iceCandidatesQueue.set(pcKey, []);
+        }
+        iceCandidatesQueue.get(pcKey).push(message);
     }
-    return pc;
-}
-
-//onIceCandidate
-let onIceCandidate = (event, otherKey) => {
-    if (event.candidate) {
-        console.log('ICE candidate');
-        stompClient.send(`/app/peer/iceCandidate/${otherKey}/${roomId}`,{}, JSON.stringify({
-            key : myKey,
-            body : event.candidate
-        }));
-    }
-};
-
-//onTrack
-let onTrack = (event, otherKey) => {
-    if(document.getElementById(`${otherKey}`) === null){
-        const video =  document.createElement('video');
-
-        video.autoplay = true;
-        video.controls = true;
-        video.id = otherKey;
-        video.srcObject = event.streams[0];
-
-        document.getElementById('remoteStreamDiv').appendChild(video);
-    }
-};
-export let sendOffer = (pc, roomId) => {
-    pc.createOffer().then(offer =>{
-        setLocalAndSendMessage(pc, offer);
-        stompClient.send(`/app/peer/offer/${roomId}`, {}, JSON.stringify({
-            key : myKey,
-            body : offer
-        }));
-        console.log('Send offer');
-    });
-};
-
-let sendAnswer = (pc, otherKey) => {
-    pc.createAnswer().then( answer => {
-        setLocalAndSendMessage(pc ,answer);
-        stompClient.send(`/app/peer/answer/${otherKey}/${roomId}`, {}, JSON.stringify({
-            key : myKey,
-            body : answer
-        }));
-        console.log('Send answer');
-    });
-};
-
-const setLocalAndSendMessage = (pc ,sessionDescription) =>{
-    pc.setLocalDescription(sessionDescription);
 }

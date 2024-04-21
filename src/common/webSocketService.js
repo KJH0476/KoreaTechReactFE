@@ -4,17 +4,20 @@ import SockJS from 'sockjs-client';
 import {updateUserStatus} from "../reducers/reducer/userSlice";
 import {addFriends, updateFriendRelation, removeFriends, updateFriendStatus} from "../reducers/reducer/friendSlice";
 import {addNotification} from "../reducers/reducer/notificationSlice";
+import {peerConfig} from "./peerConfig";
 
 let sockjs = null;
 let memberId = null;
 export let stompClient = null;
 let userEmail = null;
 let shouldReconnect = true;
+let chatRooms = null;
 
-// 서버와의 웹소켓 연결을 설정, 연결이 끊어졌을 때 자동으로 재연결
-export const connectWebsocket = (serverUrl, dispatch, userId, email) => {
+//서버와의 웹소켓 연결을 설정, 연결이 끊어졌을 때 자동으로 재연결
+export const connectWebsocket = (serverUrl, dispatch, userId, email, chatRoom) => {
     if (!sockjs) {
         sockjs = new SockJS(serverUrl);
+        chatRooms = chatRoom;
 
         const onOpen = () => {
             console.log('Connection established');
@@ -24,7 +27,7 @@ export const connectWebsocket = (serverUrl, dispatch, userId, email) => {
                     dispatch(updateUserStatus('ONLINE'));
                 });
             memberId = userId;
-            initializeStompOverSockJS(dispatch);
+            initializeStompOverSockJS(dispatch, email);
         };
 
         const onMessage = (event) => {
@@ -58,7 +61,7 @@ export const connectWebsocket = (serverUrl, dispatch, userId, email) => {
     }
 };
 
-// 웹소켓 연결 해제
+//웹소켓 연결 해제
 export const disconnectWebsocket = (dispatch) => {
     shouldReconnect = false;
 
@@ -78,15 +81,20 @@ export const disconnectWebsocket = (dispatch) => {
     }
 };
 
-// STOMP 클라이언트 초기화
-const initializeStompOverSockJS = (dispatch) => {
+//STOMP 클라이언트 초기화
+const initializeStompOverSockJS = (dispatch, email) => {
     if (!stompClient || (stompClient && !stompClient.connected)) {
-        // Stomp.over에 SockJS 인스턴스를 직접 전달하는 대신, SockJS 인스턴스를 반환하는 팩토리 함수를 전달
+        //Stomp.over에 SockJS 인스턴스를 직접 전달하는 대신, SockJS 인스턴스를 반환하는 팩토리 함수를 전달
         stompClient = Stomp.over(() => new SockJS(process.env.REACT_APP_SERVER_URL + '/ws'));
 
         stompClient.connect({}, frame => {
             console.log('Connected via STOMP:', frame);
             setupNotificationsSubscription(dispatch);
+            chatRooms?.map(cr => {
+                const roomId = cr.roomId;
+                peerConfig(roomId, email, dispatch);
+                console.log("peerConfig 실행");
+            })
         }, error => {
             console.error('STOMP connection error:', error);
             stompClient = null;
@@ -94,7 +102,7 @@ const initializeStompOverSockJS = (dispatch) => {
     }
 };
 
-// 구독
+//STOMP 메세지 구독
 export const setupNotificationsSubscription = (dispatch) => {
     if (stompClient && stompClient.connected) {
         stompClient.subscribe(`/user/${userEmail}/queue/Notification`, message => {
@@ -124,7 +132,7 @@ export const setupNotificationsSubscription = (dispatch) => {
 
             console.log('Friend status update:', friendMemberId, friendStatus);
 
-            // 상태 업데이트 액션 디스패치
+            //상태 업데이트 액션 디스패치
             dispatch(updateFriendStatus({
                 friendMemberId: friendMemberId,
                 friendStatus: friendStatus
