@@ -47,6 +47,7 @@ const UserBar = () => {
                 onRequestClose={handleModalClose}
                 style={customStyles}
                 contentLabel="UserInfo"
+                className="bg-gray-200 dark:bg-gray-700 border-gray-500 border-2"
             >
                 <UserInfo user={user} />
             </Modal>
@@ -131,8 +132,7 @@ const ActionsIcons = () => {
 
 const UserInfo = ({user}) => {
     return (
-        <div className="relative bg-gray-800 text-white p-6 rounded-lg max-w-xs">
-            {/* 프로필 이미지와 상태 */}
+        <div className="relative bg-gray-200 text-black dark:bg-gray-700 dark:text-white p-6 rounded-lg max-w-xs">
             <div className="flex items-center mb-4">
                 <div className="relative">
                     <Avatar
@@ -144,7 +144,7 @@ const UserInfo = ({user}) => {
                 <div className="ml-4">
                     <div className="text-lg font-bold">{user.username}</div>
                     <div className="text-sm">{user.email}</div>
-                    <div className="text-sm text-gray-400">DISCORD 가입 시기: {user.createdate}</div>
+                    <div className="text-sm text-gray-700 dark:text-white">가입일: {user.createdate}</div>
                 </div>
             </div>
 

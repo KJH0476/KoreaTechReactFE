@@ -2,6 +2,8 @@ import {stompClient} from "./webSocketService";
 import { otherKeyList } from "../components/VideoCall";
 import {createPeerConnection, sendOffer, sendAnswer, iceCandidatesQueue} from "../components/VideoCall";
 import {setVideo} from "../reducers/reducer/videoCallSlice";
+import {addNotification} from "../reducers/reducer/notificationSlice";
+import {incrementUnreadCount} from "../reducers/reducer/unreadMessagesSlice";
 
 export const pcListMap = new Map();
 
@@ -104,7 +106,7 @@ export const peerConfig = async (id, email, dispatch) => {
         const messageBody = JSON.parse(message.body);
 
         console.log('Received call key:', messageBody.email);
-        dispatch(setVideo({ videoCall: true, senderEmail: messageBody.email }));
+        dispatch(setVideo({ videoCall: true, senderEmail: messageBody.email, roomId: messageBody.roomId }));
     });
 
     //상대방의 key를 받는 subscribe
@@ -119,12 +121,29 @@ export const peerConfig = async (id, email, dispatch) => {
         if(messageBody.message === 'accept') {
             if (!pcListMap.has(messageBody.email)) {
                 console.log('accept and Create PeerConnection:', messageBody.email);
-                const pc = await createPeerConnection(roomId, myEmail, messageBody.email);
+                const pc = await createPeerConnection(messageBody.roomId, myEmail, messageBody.email);
                 pcListMap.set(messageBody.email, pc);
                 console.log('pcListMap:', pcListMap);
-                await sendOffer(pc, roomId, messageBody.email); // 이 함수는 비동기적으로 실행
+                await sendOffer(pc, messageBody.roomId, messageBody.email); // 이 함수는 비동기적으로 실행
             }
         }
+    });
+
+    stompClient.subscribe(`/topic/exitCall/${myEmail}`, message =>{
+        const messageBody = JSON.parse(message.body);
+
+        console.log('exit call:', messageBody.email);
+        if(pcListMap.has(messageBody.email)){
+            pcListMap.get(messageBody.email).close();
+            pcListMap.delete(messageBody.email);
+        }
+    });
+
+    stompClient.subscribe(`/topic/messages/${roomId}`, message => {
+        const messageBody = JSON.parse(message.body);
+        dispatch(addNotification(messageBody.content));
+        dispatch(incrementUnreadCount(roomId));
+        console.log('Received message:', messageBody);
     });
 }
 

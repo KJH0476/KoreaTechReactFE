@@ -5,6 +5,7 @@ import {updateUserStatus} from "../reducers/reducer/userSlice";
 import {addFriends, updateFriendRelation, removeFriends, updateFriendStatus} from "../reducers/reducer/friendSlice";
 import {addNotification} from "../reducers/reducer/notificationSlice";
 import {peerConfig} from "./peerConfig";
+import {addChatRoom} from "../reducers/reducer/chatRoomSlice";
 
 let sockjs = null;
 let memberId = null;
@@ -91,7 +92,7 @@ const initializeStompOverSockJS = (dispatch, email) => {
             console.log('Connected via STOMP:', frame);
             setupNotificationsSubscription(dispatch);
             chatRooms?.map(cr => {
-                const roomId = cr.roomId;
+                const roomId = cr.chatRoomInfo.roomId;
                 peerConfig(roomId, email, dispatch);
                 console.log("peerConfig 실행");
             })
@@ -137,6 +138,9 @@ export const setupNotificationsSubscription = (dispatch) => {
                 friendMemberId: friendMemberId,
                 friendStatus: friendStatus
             }));
+        });
+        stompClient.subscribe(`/user/${userEmail}/newChatRoom`, data => {
+            dispatch(addChatRoom(JSON.parse(data.body)));
         });
     } else {
         console.error('STOMP client is not connected. Cannot setup subscription.');

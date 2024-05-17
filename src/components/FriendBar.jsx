@@ -29,6 +29,7 @@ const customStyles = {
         transform: 'translate(-50%, 0)', // X축으로만 이동
         width: '20rem', // 모달의 너비
         zIndex: 1000, // 모달의 z-index를 충분히 높게 설정
+        borderRadius: '10px',
     },
     overlay: {
         position: 'fixed', // 오버레이를 화면에 고정

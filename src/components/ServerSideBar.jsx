@@ -1,13 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Hash } from "@phosphor-icons/react";
 import { RxCaretDown, RxCaretRight } from "react-icons/rx";
 import {Users} from "@phosphor-icons/react";
 import {useNavigate, useLocation} from "react-router-dom";
 import { useSelector } from "react-redux";
+import {selectUnreadCountByRoomId} from "../reducers/reducer/unreadMessagesSlice";
 
 const ServerSideBar = () => {
     const location = useLocation();
     const chatRooms = useSelector((state) => state.chatRoom.chatRoom);
+
+    console.log("chatRooms :", chatRooms);
+
   return (
     <div
       className="relative top-0 flex h-full
@@ -95,7 +99,7 @@ const Section = ({sectionName = "Text Channels", channels}) => {
       </div>
       {channels &&
         channels.map((channel) => (
-          <ChannelItem key={channel.friendName} channel={channel} isSectionExpanded={expanded} />
+          <ChannelItem key={channel.chatRoomInfo.id} channel={channel} isSectionExpanded={expanded} />
         ))}
     </div>
   );
@@ -105,6 +109,12 @@ const ChannelItem = ({ channel, isSectionExpanded = true }) => {
     let navigate = useNavigate();
     const location = useLocation();
     const isActive = location.pathname === `/channel/${channel.friendName}`;
+
+    const unreadCount = useSelector(state => selectUnreadCountByRoomId(state, channel.chatRoomInfo.roomId));
+
+    console.log("channel :", channel);
+    console.log("unreadCount :", unreadCount);
+
   return (
     <div className={`${!isSectionExpanded && !channel.active ? "hidden" : ""}`}>
       <div
@@ -112,15 +122,42 @@ const ChannelItem = ({ channel, isSectionExpanded = true }) => {
                     py-1 text-gray-500 hover:bg-gray-300 hover:text-gray-600
                     dark:hover:bg-gray-700 dark:hover:text-gray-400
                     ${isActive ? "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400" : ""}`}
-        onClick={() => navigate(`/channel/${channel.roomId}/${channel.friendName}`)}
+        onClick={() => navigate(`/channel/${channel.chatRoomInfo.roomId}/caller`)}
       >
         <Hash className="text-gray-500" size={24} />
         <p className="ml-1 overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium">
-          {channel.friendName}
+          {formatChatRoomParticipants(channel.memberList)}
         </p>
+          {renderUnreadMessageCount(unreadCount)}
       </div>
     </div>
   );
 };
+
+const renderUnreadMessageCount = (count) => {
+    if (count > 0) {
+        return (
+            <span
+                className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold z-10">
+                    {count}
+                </span>
+        );
+    }
+    return null;
+};
+
+function formatChatRoomParticipants(memberList) {
+    if (!memberList.length) {
+        return '참가자 없음';
+    }
+    const firstMember = memberList[0].name;
+    const additionalCount = memberList.length - 1;
+
+    if (additionalCount > 0) {
+        return `${firstMember} 외 ${additionalCount}명`;
+    } else {
+        return firstMember;
+    }
+}
 
 export default ServerSideBar;

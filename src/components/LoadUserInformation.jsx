@@ -25,7 +25,7 @@ export const LoadUserInformation = () => {
                         // 사용자 정보 로드 성공 후 친구 정보 로드
                         await loadFriendsData(data.id);
 
-                        await loadChatRoom(email);
+                        await loadChatRoom(data.id);
 
                         // 정보 로드가 완료되었음을 표시합니다.
                         setInfoLoaded(true);
@@ -67,12 +67,12 @@ export const LoadUserInformation = () => {
         }
     };
 
-    const loadChatRoom = async (email) => {
+    const loadChatRoom = async (memberId) => {
         try {
-            const { status, data } = await sendRequestWithToken(`/find-chatRoom/${email}`, null, 'GET', dispatch);
+            const { status, data } = await sendRequestWithToken(`/find-chatRoom/${memberId}`, null, 'GET', dispatch);
             if (status === 200 && data) {
                 console.log("채팅방 정보 로드 완료");
-                dispatch(addChatRoom(data));
+                await dispatch(addChatRoom(data));
             }
         } catch (error) {
             console.error(error);

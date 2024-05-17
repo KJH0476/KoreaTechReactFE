@@ -13,6 +13,8 @@ import { useSelector, useDispatch } from "react-redux";
 import {ChatCircle, DotsThreeCircleVertical, CheckCircle, XCircle} from '@phosphor-icons/react';
 import {sendRequestWithToken} from "../common/requestWithToken";
 import {updateFriendRelation, removeFriends} from "../reducers/reducer/friendSlice";
+import {addChatRoom} from "../reducers/reducer/chatRoomSlice";
+import {stompClient} from "../common/webSocketService";
 
 const FriendHome = () => {
     const member = useSelector(state => state.user.userInfo);
@@ -63,6 +65,35 @@ const FriendHome = () => {
         }
     }
 
+    //채팅방 생성
+    const createChatRoom = async (member, friend) => {
+        const randomRoomId = `room_${Date.now()}`;
+        const chatRoom = {
+            firstParticipantId: member.id,
+            secondParticipantId: friend.friendMemberId,
+            roomId: randomRoomId,
+            roomName: friend.friendName
+        };
+
+        const receiveChatRoom = {
+            email: friend.friendEmail, // 친구의 이메일
+            name: friend.friendName, // 친구의 이름
+            friendEmail: member.email, // 로그인한 사용자의 이메일
+            friendName: member.username, // 로그인한 사용자의 이름
+            roomId: randomRoomId // 임의의 고유 방 아이디 생성
+        };
+
+        try{
+            const data = await sendRequestWithToken('/add-chatRoom', chatRoom
+                , 'POST', dispatch).then(() => dispatch(addChatRoom(data)));
+            console.log(data);
+            stompClient.send('/pub/chat', {}, JSON.stringify(receiveChatRoom));
+        } catch (e) {
+            console.log(e);
+        }
+
+    };
+
     return (
         <>
             <FriendBar />
@@ -97,7 +128,7 @@ const FriendHome = () => {
                             </>
                         ) : (
                             <>
-                                <ChatCircle size={28} weight="fill" className="mx-2" />
+                                <ChatCircle onClick={() => createChatRoom(member, friend)} size={28} weight="fill" className="mx-2" />
                                 <DotsThreeCircleVertical size={28} weight="fill" />
                             </>
                         )}

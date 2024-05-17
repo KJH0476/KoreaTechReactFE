@@ -54,30 +54,6 @@ const posts = [
     "date": "2023-10-25T16:21:36.199Z",
     "avatar": "https://api.dicebear.com/7.x/micah/svg?seed=Zoe&radius=50",
     "message": "Proin rhoncus libero iaculis, pharetra nunc ac, varius sem."
-  },
-  {
-    "id": "8",
-    "username": "Gracie",
-    "usernameColour": "text-blue-500",
-    "date": "2023-02-23T18:56:57.964Z",
-    "avatar": "https://api.dicebear.com/7.x/micah/svg?seed=Gracie&radius=50",
-    "message": "Cras quis quam vitae orci congue pretium."
-  },
-  {
-    "id": "9",
-    "username": "Salem",
-    "usernameColour": "text-purple-400",
-    "date": "2023-05-06T00:53:21.720Z",
-    "avatar": "https://api.dicebear.com/7.x/micah/svg?seed=Salem&radius=50",
-    "message": "Duis eu massa sed purus malesuada porttitor et id quam."
-  },
-  {
-    "id": "10",
-    "username": "Chloe",
-    "usernameColour": "text-red-400",
-    "date": "2023-01-20T02:51:10.143Z",
-    "avatar": "https://api.dicebear.com/7.x/micah/svg?seed=Chloe&radius=50",
-    "message": "Praesent faucibus turpis nec ante auctor vehicula."
   }
 ];
 
