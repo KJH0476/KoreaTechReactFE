@@ -17,6 +17,7 @@ import { useDispatch } from 'react-redux';
 import {loginSuccess} from "../reducers/reducer/userSlice";
 import {addFriends} from "../reducers/reducer/friendSlice";
 import {sendRequestWithToken} from "../common/requestWithToken";
+import {addChatRoom} from "../reducers/reducer/chatRoomSlice";
 
 const defaultTheme = createTheme();
 
@@ -62,9 +63,12 @@ export default function SignIn({ onLoginSuccess }) {
                 console.log("로그인 성공");
                 const userInfo = await fetchUserInfo(jsonResponse.token, loginDetails.email);
 
+                await loadFriendsData(userInfo.id);
+
+                await loadChatRoom(userInfo.id);
+
                 dispatch(loginSuccess(userInfo));
 
-                loadFriendsData(userInfo.id);
             } else if (response.status===400) {
                 const errorData = await response.json(); // 서버로부터 에러 메시지 받기
                 setErrorMessage(errorData.message);
@@ -114,6 +118,18 @@ export default function SignIn({ onLoginSuccess }) {
             console.log("친구 정보 로드 완료");
         }
         catch (error) {
+            console.error(error);
+        }
+    };
+
+    const loadChatRoom = async (memberId) => {
+        try {
+            const { status, data } = await sendRequestWithToken(`/find-chatRoom/${memberId}`, null, 'GET', dispatch);
+            if (status === 200 && data) {
+                console.log("채팅방 정보 로드 완료");
+                dispatch(addChatRoom(data));
+            }
+        } catch (error) {
             console.error(error);
         }
     };

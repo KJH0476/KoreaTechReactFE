@@ -141,7 +141,6 @@ export const peerConfig = async (id, email, dispatch) => {
 
     stompClient.subscribe(`/topic/messages/${roomId}`, message => {
         const messageBody = JSON.parse(message.body);
-        dispatch(addNotification(messageBody.content));
         dispatch(incrementUnreadCount(roomId));
         console.log('Received message:', messageBody);
     });
