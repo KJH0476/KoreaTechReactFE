@@ -3,6 +3,7 @@ import {stompClient} from "../common/webSocketService";
 import {useSelector} from "react-redux";
 import {eventEmitter} from "../common/eventSystem";
 import { HiOutlinePhoneMissedCall } from "react-icons/hi";
+import {useNavigate, useParams} from "react-router-dom";
 
 export const configuration = {
     iceServers: [
@@ -22,6 +23,7 @@ const VideoCall = ({roomId, recipientEmail, role}) => {
     const [callEnded, setCallEnded] = useState(false);
     const [remoteStreams, setRemoteStreams] = useState(new Map());
     const member = useSelector(state => state.user.userInfo);
+    const navigate = useNavigate();
 
     otherKeyList.push(recipientEmail);
     myEmail = member.email;
@@ -79,6 +81,21 @@ const VideoCall = ({roomId, recipientEmail, role}) => {
 
         return () => {
             eventEmitter.off('track', handleTrackEvent);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleUnload = (event) => {
+            endCall();
+            window.location.href = '/';
+        };
+
+        // 새로고침 및 탭 닫기 감지
+        window.addEventListener('unload', handleUnload);
+
+        // 이벤트 리스너 정리
+        return () => {
+            window.removeEventListener('unload', handleUnload);
         };
     }, []);
 

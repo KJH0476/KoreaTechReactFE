@@ -18,7 +18,7 @@ import Modal from 'react-modal';
 import NotificationList from './NotificationList';
 import '../index.css';
 import ChannelChat from "./ChannelChat";
-import {useParams} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import VoiceCall from "./VoiceCall";
 import VideoCall from "./VideoCall";
 import {stompClient} from "../common/webSocketService";
@@ -86,6 +86,7 @@ const ChannelBar = () => {
   const chatRooms = useSelector(state => state.chatRoom.chatRoom);
   const friends = useSelector(state => state.friend.friends);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const chatRoom = chatRooms.find(room => room.chatRoomInfo && room.chatRoomInfo.roomId === roomId);
   const chatRoomParticipants = chatRoom.memberList;
@@ -135,16 +136,30 @@ const ChannelBar = () => {
   const renderActiveComponent = () => {
     console.log(roomId);
     switch (activeComponent) {
-      case "voiceCall":
-        return <VoiceCall />;
       case "videoCall":
-        stompClient.send("/app/call/key", {}, JSON.stringify({message: "pleaseKey"}));
         return <VideoCall roomId={roomId} recipientEmail={email} role={role}/>;
       case "channelChat":
       default:
         return <ChannelChat roomId={roomId} />;
     }
   };
+
+  useEffect(() => {
+    console.log("새로고침");
+    const handleBeforeUnload = (event) => {
+      setActiveComponent("channelChat");
+      // 새로고침 시 리디렉션
+      navigate('/channel/'+roomId+'/caller');
+    };
+
+    // 새로고침 감지
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // 이벤트 리스너 정리
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [navigate]);
 
   return (
       <>
